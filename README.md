@@ -110,26 +110,16 @@ Example response from `/summary`:
 
 ## Design Decisions
 
-**Why SQLite?** Sufficient for single-machine daily ingestion of one time-series. Easy to swap for PostgreSQL by changing `DB_URL` in `database.py`.
+**SQLite:** Sufficient for single-machine daily ingestion of one time-series. Easy to swap for PostgreSQL by changing `DB_URL` in `database.py`.
 
-**Why yfinance?** Free, no API key, covers ICE EUA Futures (`^ICEEUA`) with 2+ years of history. Backup ticker `CO2.L` (SparkChange EUA ETC) included.
+**yfinance:** Free, no API key, covers ICE EUA Futures (`^ICEEUA`) with 2+ years of history. Backup ticker `CO2.L` (SparkChange EUA ETC) included.
 
-**Why APScheduler over cron?** Python-native, cross-platform, easier for a portfolio demo. In production, this would be an Airflow DAG or a cloud scheduler (AWS EventBridge / Azure Logic Apps).
+**APScheduler over cron?** Python-native, cross-platform, easier for a portfolio demo. In production, this would be an Airflow DAG or a cloud scheduler (AWS EventBridge / Azure Logic Apps).
 
 **Alert threshold of ±3%:** Based on EUA's historical average daily volatility (~1–1.5%). A ±3% move is roughly a 2σ event, worth flagging for compliance teams.
 
 ---
 
-## What I'd add with more time
-
-- **UK ETS** price feed alongside EU ETS (directly relevant to CFP Energy)
-- **Correlation analysis** between EUA price and gas/power prices
-- **PostgreSQL + Alembic** migrations for production-grade storage
-- **Docker Compose** to run API + dashboard + scheduler as services
-- **GitHub Actions** CI: run tests on every push
-- **Unit tests** (pytest) for analytics functions
-
----
 
 ## About
 
