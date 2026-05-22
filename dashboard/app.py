@@ -84,16 +84,14 @@ st.markdown("""
 
 # ── Data loading ───────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=300)  # re-fetch every 5 minutes
+@st.cache_data(ttl=300)
 def load_data(days: int):
     init_db()
+    # Auto-run pipeline if DB is empty
+    if get_prices_df(days=1).empty:
+        from pipeline.runner import run_pipeline
+        run_pipeline()
     df = get_prices_df(days=days)
-    if df.empty:
-        return pd.DataFrame(), None, pd.DataFrame()
-    df_enriched = enrich(df)
-    summary = get_market_summary(df)
-    alerts_df = get_alerts_df(days=60)
-    return df_enriched, summary, alerts_df
 
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
