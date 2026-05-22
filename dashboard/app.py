@@ -176,19 +176,25 @@ fig = make_subplots(
     row_heights=row_heights,
 )
 
-# Candlestick
-fig.add_trace(go.Candlestick(
-    x=df["date"],
-    open=df["open"],
-    high=df["high"],
-    low=df["low"],
-    close=df["close"],
-    name="EUA Price",
-    increasing_line_color="#22c55e",
-    decreasing_line_color="#ef4444",
-    increasing_fillcolor="rgba(34,197,94,0.3)",
-    decreasing_fillcolor="rgba(239,68,68,0.3)",
-), row=1, col=1)
+# Candlestick or line chart depending on data quality
+has_ohlc = (df["high"] - df["low"]).mean() > 0.01
+
+if has_ohlc:
+    fig.add_trace(go.Candlestick(
+        x=df["date"], open=df["open"], high=df["high"],
+        low=df["low"], close=df["close"], name="EUA Price",
+        increasing_line_color="#22c55e", decreasing_line_color="#ef4444",
+        increasing_fillcolor="rgba(34,197,94,0.3)",
+        decreasing_fillcolor="rgba(239,68,68,0.3)",
+    ), row=1, col=1)
+else:
+    fig.add_trace(go.Scatter(
+        x=df["date"], y=df["close"],
+        name="EUA Price",
+        line=dict(color="#22c55e", width=2),
+        fill="tozeroy",
+        fillcolor="rgba(34,197,94,0.05)",
+    ), row=1, col=1)
 
 # Moving averages
 if show_ma7:
