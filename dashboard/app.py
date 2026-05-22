@@ -88,7 +88,13 @@ st.markdown("""
 def load_data(days: int):
     init_db()
     # Auto-run pipeline if DB is empty
-    if get_prices_df(days=1).empty:
+    existing = get_prices_df(days=1)
+    if existing.empty or "Synthetic" in str(existing.get("source", [""])[0] if not existing.empty else ""):
+        import os
+        db_path = Path(__file__).parent.parent / "data" / "carbon_tracker.db"
+        if db_path.exists():
+            os.remove(db_path)
+        init_db()
         from pipeline.runner import run_pipeline
         run_pipeline()
     df = get_prices_df(days=days)
