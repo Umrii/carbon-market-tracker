@@ -92,7 +92,14 @@ def load_data(days: int):
         from pipeline.runner import run_pipeline
         run_pipeline()
     df = get_prices_df(days=days)
-
+    if df is None or df.empty:
+        return pd.DataFrame(), None, pd.DataFrame()
+    df_enriched = enrich(df)
+    summary = get_market_summary(df)
+    alerts_df = get_alerts_df(days=60)
+    if alerts_df is None:
+        alerts_df = pd.DataFrame()
+    return df_enriched, summary, alerts_df
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
 
