@@ -32,24 +32,6 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    .metric-card {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border: 1px solid #0f3460;
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-    }
-    .big-price {
-        font-size: 2.8rem;
-        font-weight: 700;
-        color: #e2e8f0;
-    }
-    .price-label {
-        font-size: 0.85rem;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
     .change-positive { color: #22c55e; font-weight: 600; }
     .change-negative { color: #ef4444; font-weight: 600; }
     .alert-drop {
@@ -103,6 +85,7 @@ def load_data(days: int):
         alerts_df = pd.DataFrame()
     return df_enriched, summary, alerts_df
 
+
 # ── Sidebar ────────────────────────────────────────────────────────────────
 
 with st.sidebar:
@@ -121,7 +104,7 @@ with st.sidebar:
     **EUA** (EU Allowance) = right to emit 1 tonne of CO₂.
     Companies must surrender one EUA per tonne emitted annually.
     
-    **Data source:** SparkChange EUA ETC (CO2.L) via Yahoo Finance.
+    **Data source:** EEX Primary Market Auction Reports (official EU ETS settlement prices).
     """)
 
     st.markdown("---")
@@ -144,11 +127,6 @@ if df.empty or summary is None:
 # ── Top KPI strip ──────────────────────────────────────────────────────────
 
 col1, col2, col3, col4, col5 = st.columns(5)
-
-def fmt_change(val, suffix="%"):
-    arrow = "▲" if val >= 0 else "▼"
-    colour = "change-positive" if val >= 0 else "change-negative"
-    return f'<span class="{colour}">{arrow} {abs(val):.2f}{suffix}</span>'
 
 with col1:
     st.metric("EUA Price", f"€{summary.latest_price:.2f}", f"{summary.daily_change:+.2f} today")
@@ -178,25 +156,15 @@ fig = make_subplots(
     row_heights=row_heights,
 )
 
-# Candlestick or line chart depending on data quality
-has_ohlc = (df["high"] - df["low"]).mean() > 0.01
-
-if has_ohlc:
-    fig.add_trace(go.Candlestick(
-        x=df["date"], open=df["open"], high=df["high"],
-        low=df["low"], close=df["close"], name="EUA Price",
-        increasing_line_color="#22c55e", decreasing_line_color="#ef4444",
-        increasing_fillcolor="rgba(34,197,94,0.3)",
-        decreasing_fillcolor="rgba(239,68,68,0.3)",
-    ), row=1, col=1)
-else:
-    fig.add_trace(go.Scatter(
-        x=df["date"], y=df["close"],
-        name="EUA Price",
-        line=dict(color="#22c55e", width=2),
-        fill="tozeroy",
-        fillcolor="rgba(34,197,94,0.05)",
-    ), row=1, col=1)
+# Price line chart (EEX auction settlement prices — one price per day)
+fig.add_trace(go.Scatter(
+    x=df["date"],
+    y=df["close"],
+    name="EUA Price",
+    line=dict(color="#22c55e", width=2),
+    fill="tozeroy",
+    fillcolor="rgba(34,197,94,0.05)",
+), row=1, col=1)
 
 # Moving averages
 if show_ma7:
@@ -215,13 +183,11 @@ if show_ma30:
 
 # Volume bars
 if show_volume:
-    colours = ["#22c55e" if c >= o else "#ef4444"
-               for c, o in zip(df["close"], df["open"])]
     fig.add_trace(go.Bar(
         x=df["date"], y=df["volume"],
         name="Volume",
-        marker_color=colours,
-        opacity=0.6,
+        marker_color="#60a5fa",
+        opacity=0.4,
     ), row=2, col=1)
     fig.update_yaxes(title_text="Volume", row=2, col=1)
 
@@ -260,7 +226,6 @@ with col_a:
     st.dataframe(pd.DataFrame(ma_data), hide_index=True, use_container_width=True)
 
 with col_b:
-    # Daily returns distribution
     returns = df["daily_return"].dropna()
     fig2 = go.Figure(go.Histogram(
         x=returns,
@@ -305,7 +270,7 @@ else:
 st.markdown("---")
 st.caption(
     "Carbon Market Tracker · EU ETS EUA Price Pipeline · "
-    "Data: ICE EUA Futures via Yahoo Finance · "
+    "Data: EEX Primary Market Auction Reports · "
     "Built with Python, FastAPI, SQLite, Streamlit · "
     "[GitHub →](https://github.com/Umrii/carbon-market-tracker)"
 )
