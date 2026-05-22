@@ -166,16 +166,20 @@ def get_alerts_df(days: int = 30) -> pd.DataFrame:
     finally:
         session.close()
 def delete_synthetic_records():
-    """Remove any synthetic data records from the database."""
+    """Remove synthetic/bad data — keep only records from 2025 onwards."""
+    from datetime import date
     session = get_session()
     try:
+        deleted = session.query(EUAPrice).filter(
+            EUAPrice.date < date(2025, 1, 1)
+        ).delete(synchronize_session=False)
         session.query(EUAPrice).filter(
             EUAPrice.source.like("%Synthetic%")
         ).delete(synchronize_session=False)
         session.commit()
-        logger.info("Cleared synthetic records from DB.")
+        logger.info(f"Cleaned up old/synthetic records.")
     except Exception as e:
         session.rollback()
-        logger.error(f"Failed to clear synthetic records: {e}")
+        logger.error(f"Cleanup failed: {e}")
     finally:
         session.close()
