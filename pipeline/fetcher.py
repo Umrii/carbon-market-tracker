@@ -154,6 +154,7 @@ def _parse_eex_excel(df_raw: pd.DataFrame, year: int) -> pd.DataFrame | None:
         spread = result["close"] * 0.005
         result["open"] = result["close"].shift(1).fillna(result["close"])
         result["high"] = (result["close"] + spread).round(2)
+        result["low"] = (result["close"] - spread).round(2)
         result["source"] = f"EEX Primary Auction (official EU ETS settlement, {year})"
 
         result = result.dropna(subset=["date", "close"])
