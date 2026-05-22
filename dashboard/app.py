@@ -87,10 +87,11 @@ st.markdown("""
 @st.cache_data(ttl=300)
 def load_data(days: int):
     init_db()
+    from pipeline.database import delete_synthetic_records
+    from pipeline.runner import run_pipeline
+    delete_synthetic_records()
     existing = get_prices_df(days=1)
-    is_synthetic = not existing.empty and "Synthetic" in str(existing.iloc[0].get("source", ""))
-    if existing.empty or is_synthetic:
-        from pipeline.runner import run_pipeline
+    if existing.empty:
         run_pipeline()
     df = get_prices_df(days=days)
     if df is None or df.empty:

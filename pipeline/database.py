@@ -165,3 +165,17 @@ def get_alerts_df(days: int = 30) -> pd.DataFrame:
         } for r in records])
     finally:
         session.close()
+def delete_synthetic_records():
+    """Remove any synthetic data records from the database."""
+    session = get_session()
+    try:
+        session.query(EUAPrice).filter(
+            EUAPrice.source.like("%Synthetic%")
+        ).delete(synchronize_session=False)
+        session.commit()
+        logger.info("Cleared synthetic records from DB.")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Failed to clear synthetic records: {e}")
+    finally:
+        session.close()
