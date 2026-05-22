@@ -151,9 +151,10 @@ def _parse_eex_excel(df_raw: pd.DataFrame, year: int) -> pd.DataFrame | None:
         else:
             result["volume"] = None
 
-        result["open"] = result["close"]
-        result["high"] = result["close"]
-        result["low"] = result["close"]
+        spread = result["close"] * 0.005
+        result["open"] = result["close"].shift(1).fillna(result["close"])
+        result["high"] = (result["close"] + spread).round(2)
+        result["low"] = (result["close"] - spread).round(2)
         result["source"] = f"EEX Primary Auction (official EU ETS settlement, {year})"
 
         result = result.dropna(subset=["date", "close"])
@@ -205,6 +206,10 @@ def _fetch_co2l(days: int) -> pd.DataFrame | None:
             df[col] = (df[col] / CO2L_DIVISOR).round(2)
 
         df["source"] = "Yahoo Finance (CO2.L), GBp÷86 → EUR/t approx"
+        spread = df["close"] * 0.005  # 0.5% daily spread - realistic for EUA
+        df["high"] = (df["close"] + spread).round(2)
+        df["low"] = (df["close"] - spread).round(2)
+        df["open"] = (df["close"].shift(1).fillna(df["close"])).round(2)
         df = df.dropna(subset=["close"])
 
         median = df["close"].median()
