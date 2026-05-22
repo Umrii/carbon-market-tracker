@@ -162,8 +162,6 @@ fig.add_trace(go.Scatter(
     y=df["close"],
     name="EUA Price",
     line=dict(color="#22c55e", width=2),
-    fill="tozeroy",
-    fillcolor="rgba(34,197,94,0.05)",
 ), row=1, col=1)
 
 # Moving averages
@@ -202,7 +200,8 @@ fig.update_layout(
 )
 fig.update_xaxes(gridcolor="rgba(255,255,255,0.05)", showgrid=True)
 fig.update_yaxes(gridcolor="rgba(255,255,255,0.05)", showgrid=True,
-                 title_text="EUR/t CO₂", row=1, col=1)
+                 title_text="EUR/t CO₂", row=1, col=1, rangemode="normal")
+
 
 st.plotly_chart(fig, use_container_width=True)
 
