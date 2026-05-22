@@ -212,9 +212,22 @@ fig.update_layout(
     margin=dict(l=0, r=0, t=10, b=0),
 )
 fig.update_xaxes(gridcolor="rgba(255,255,255,0.05)", showgrid=True)
-fig.update_yaxes(gridcolor="rgba(255,255,255,0.05)", showgrid=True,
-                 title_text="EUR/t CO₂", row=1, col=1, rangemode="normal")
 
+# Compute price axis range explicitly from data so it is never contaminated
+# by the volume subplot's scale — required for correct rendering across all
+# Streamlit + Plotly version combinations.
+price_vals = df["close"].dropna()
+if not price_vals.empty:
+    pad = (price_vals.max() - price_vals.min()) * 0.1 or price_vals.mean() * 0.05
+    price_range = [float(price_vals.min() - pad), float(price_vals.max() + pad)]
+else:
+    price_range = None
+
+fig.update_yaxes(
+    gridcolor="rgba(255,255,255,0.05)", showgrid=True,
+    title_text="EUR/t CO₂", row=1, col=1,
+    range=price_range,
+)
 
 st.plotly_chart(fig, use_container_width=True)
 
