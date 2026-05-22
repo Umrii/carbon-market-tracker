@@ -170,16 +170,93 @@ def delete_synthetic_records():
     from datetime import date
     session = get_session()
     try:
-        deleted = session.query(EUAPrice).filter(
+        session.query(EUAPrice).filter(
             EUAPrice.date < date(2025, 1, 1)
         ).delete(synchronize_session=False)
         session.query(EUAPrice).filter(
             EUAPrice.source.like("%Synthetic%")
         ).delete(synchronize_session=False)
         session.commit()
-        logger.info(f"Cleaned up old/synthetic records.")
+        logger.info("Cleaned up old/synthetic records.")
     except Exception as e:
         session.rollback()
         logger.error(f"Cleanup failed: {e}")
+    finally:
+        session.close()
+
+
+def purge_invalid_prices() -> int:
+    """
+    Delete records whose close price is outside the plausible EUA range (€30–€300).
+    Returns the number of rows deleted.
+    EUA has never traded below €30 since 2021, so anything outside this range
+    indicates corrupt/wrong data (e.g. sequential row indices stored as prices).
+    """
+    session = get_session()
+    try:
+        deleted = session.query(EUAPrice).filter(
+            (EUAPrice.close < 30.0) | (EUAPrice.close > 300.0)
+        ).delete(synchronize_session=False)
+        session.commit()
+        if deleted:
+            logger.warning(f"Purged {deleted} records with implausible prices (outside €30–€300).")
+        return deleted
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Price purge failed: {e}")
+        return 0
+    finally:
+        session.close()
+
+
+def delete_all_prices() -> int:
+    """
+    Wipe the entire eua_prices table. Called before a forced re-fetch when
+    data validity checks fail — necessary because upsert skips existing dates,
+    so corrupt records for valid dates would never be overwritten otherwise.
+    """
+    session = get_session()
+    try:
+        deleted = session.query(EUAPrice).delete(synchronize_session=False)
+        session.commit()
+        logger.warning(f"Wiped all {deleted} price records for fresh re-fetch.")
+        return deleted
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Full price wipe failed: {e}")
+        return 0
+    finally:
+        session.close()
+
+
+def is_price_data_valid() -> bool:
+    """
+    Return True if the stored price data looks like real EUA market data.
+    Three checks:
+      - At least 10 records exist
+      - Latest record is within 14 calendar days (handles weekends/holidays)
+      - Median price is in the €40–€110 range and max is below €130
+        (EUA has never traded above ~€100 in 2025-2026; sequential/corrupt
+        data like row-indices stored as prices routinely exceeds €130)
+    """
+    from datetime import date
+    session = get_session()
+    try:
+        records = session.query(EUAPrice).order_by(EUAPrice.date.desc()).limit(90).all()
+        if len(records) < 10:
+            return False
+        prices = sorted([r.close for r in records if r.close is not None])
+        if not prices:
+            return False
+        min_price = prices[0]
+        max_price = prices[-1]
+        median = prices[len(prices) // 2]
+        latest_date = records[0].date
+        days_stale = (date.today() - latest_date).days
+        price_ok = (40.0 <= min_price) and (median <= 110.0) and (max_price <= 130.0)
+        return price_ok and (days_stale <= 14)
+    except Exception as e:
+        logger.error(f"Data validity check failed: {e}")
+        return False
     finally:
         session.close()

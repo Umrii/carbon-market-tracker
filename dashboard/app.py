@@ -69,12 +69,22 @@ st.markdown("""
 @st.cache_data(ttl=300)
 def load_data(days: int):
     init_db()
-    from pipeline.database import delete_synthetic_records
+    from pipeline.database import (
+        delete_synthetic_records, purge_invalid_prices, is_price_data_valid,
+    )
     from pipeline.runner import run_pipeline
+
     delete_synthetic_records()
-    existing = get_prices_df(days=1)
-    if existing.empty:
+    purge_invalid_prices()
+
+    if not is_price_data_valid():
+        # Data is missing, stale, or corrupt (e.g. row-indices stored as prices).
+        # Wipe everything first — upsert skips existing dates, so corrupt records
+        # for valid dates would never be overwritten without a full wipe.
+        from pipeline.database import delete_all_prices
+        delete_all_prices()
         run_pipeline()
+
     df = get_prices_df(days=days)
     if df is None or df.empty:
         return pd.DataFrame(), None, pd.DataFrame()
@@ -108,6 +118,9 @@ with st.sidebar:
     """)
 
     st.markdown("---")
+    if st.button("🔄 Force Refresh Data", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
     st.caption("Built by Muhammad Atiq · [GitHub](https://github.com/Umrii)")
 
 
