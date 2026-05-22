@@ -119,7 +119,7 @@ with st.sidebar:
     **EUA** (EU Allowance) = right to emit 1 tonne of CO₂.
     Companies must surrender one EUA per tonne emitted annually.
     
-    **Data source:** ICE EUA Futures (`^ICEEUA`) via Yahoo Finance.
+    **Data source:** SparkChange EUA ETC (CO2.L) via Yahoo Finance.
     """)
 
     st.markdown("---")
