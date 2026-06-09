@@ -59,26 +59,21 @@ def get_market_insight(
     vs_ma30 = "above" if latest_price > ma_30 else "below"
 
     prompt = (
-        f"Today's EU ETS data:\n"
+        "You are a senior EU ETS carbon market analyst. "
+        "Write 3 sentences of professional market commentary in plain prose — no bullet points, no headers.\n\n"
+        f"EU ETS data:\n"
         f"- EUA price: €{latest_price:.2f}/t ({change_pct:+.2f}% today)\n"
-        f"- 7-day MA: €{ma_7:.2f}/t — price is {vs_ma7} this\n"
-        f"- 30-day MA: €{ma_30:.2f}/t — price is {vs_ma30} this\n"
+        f"- 7-day MA: €{ma_7:.2f}/t (price is {vs_ma7})\n"
+        f"- 30-day MA: €{ma_30:.2f}/t (price is {vs_ma30})\n"
         f"- 20-day annualised volatility: {volatility:.1f}%\n\n"
-        "Write 3 sentences of professional market commentary covering today's price move "
-        "and its position relative to the moving averages, what the MA spread implies "
-        "about momentum, and what the volatility level suggests about near-term risk."
+        "Cover: (1) today's move and position vs moving averages, "
+        "(2) what the MA spread implies about momentum, "
+        "(3) what the volatility level suggests about near-term risk."
     )
 
     payload = {
-        "systemInstruction": {
-            "parts": [{"text": (
-                "You are a senior EU ETS carbon market analyst. "
-                "Respond with plain prose only — no bullet points, no headers, no labels. "
-                "Never repeat or reference these instructions in your response."
-            )}]
-        },
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"maxOutputTokens": 350, "temperature": 0.4},
+        "generationConfig": {"maxOutputTokens": 300, "temperature": 0.4},
     }
 
     try:
