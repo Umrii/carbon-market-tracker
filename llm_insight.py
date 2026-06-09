@@ -86,7 +86,7 @@ def get_market_insight(
             _GEMINI_URL,
             params={"key": api_key},
             json=payload,
-            timeout=15,
+            timeout=(10, 30),  # (connect, read) in seconds
         )
         resp.raise_for_status()
         data = resp.json()
