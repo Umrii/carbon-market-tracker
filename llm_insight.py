@@ -33,7 +33,7 @@ _load_dotenv()
 
 _GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-2.0-flash:generateContent"
+    "gemini-3.5-flash:generateContent"
 )
 
 
