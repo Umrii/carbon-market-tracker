@@ -6,6 +6,7 @@ or as a Render environment variable in production).
 """
 
 import os
+import time
 import requests
 from pathlib import Path
 
@@ -76,17 +77,29 @@ def get_market_insight(
         "generationConfig": {"maxOutputTokens": 300, "temperature": 0.4},
     }
 
-    try:
-        resp = requests.post(
-            _GEMINI_URL,
-            params={"key": api_key},
-            json=payload,
-            timeout=(10, 30),  # (connect, read) in seconds
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except requests.exceptions.HTTPError as e:
-        return f"⚠️ Gemini API error ({e.response.status_code}): {e.response.text[:200]}"
-    except Exception as e:
-        return f"⚠️ Could not generate insight: {e}"
+    last_error = ""
+    for attempt in range(3):
+        try:
+            resp = requests.post(
+                _GEMINI_URL,
+                params={"key": api_key},
+                json=payload,
+                timeout=(10, 20),
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code
+            if status == 503 and attempt < 2:
+                time.sleep(3)
+                continue
+            return f"⚠️ Gemini API error ({status}): {e.response.text[:200]}"
+        except requests.exceptions.Timeout:
+            if attempt < 2:
+                time.sleep(2)
+                continue
+            last_error = "request timed out — Gemini may be under high load, try again shortly"
+        except Exception as e:
+            return f"⚠️ Could not generate insight: {e}"
+    return f"⚠️ {last_error}"

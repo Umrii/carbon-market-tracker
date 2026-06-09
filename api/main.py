@@ -6,7 +6,7 @@ Run with: uvicorn api.main:app --reload
 Docs at:  http://localhost:8000/docs
 """
 
-from datetime import date
+# from datetime import date
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
