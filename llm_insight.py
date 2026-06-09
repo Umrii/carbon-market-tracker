@@ -55,22 +55,32 @@ def get_market_insight(
     if not api_key:
         return "⚠️ GEMINI_API_KEY is not set. Add it to your .env file or Render environment variables."
 
+    # Describe position relative to moving averages for richer context
+    vs_ma7 = "above" if latest_price > ma_7 else "below"
+    vs_ma30 = "above" if latest_price > ma_30 else "below"
+    direction = "gained" if change_pct >= 0 else "fell"
+
     prompt = (
-        "You are a carbon market analyst. Based on the following EU ETS data, "
-        "write a 2-3 sentence market insight in plain English suitable for a "
-        "professional dashboard. Focus on price trend, momentum relative to "
-        "moving averages, and what the volatility level suggests about current "
-        "market conditions. Be concise and factual.\n\n"
-        f"- Current EUA price: €{latest_price:.2f}/tonne CO₂\n"
-        f"- Day change: {change_pct:+.2f}%\n"
-        f"- 7-day moving average: €{ma_7:.2f}/t\n"
-        f"- 30-day moving average: €{ma_30:.2f}/t\n"
+        "You are a senior carbon market analyst writing for a professional EU ETS trading dashboard. "
+        "Using ONLY the data provided below, write EXACTLY 3 complete sentences:\n"
+        "  Sentence 1: State today's price move with context (direction, magnitude, position vs moving averages).\n"
+        "  Sentence 2: Interpret the momentum signal — is the price accelerating or fading, "
+        "and what does the gap between 7-day and 30-day MAs suggest about the short-term trend?\n"
+        "  Sentence 3: Assess what the volatility level implies for near-term risk — "
+        "is it elevated, subdued, or in line with typical EU ETS conditions?\n\n"
+        "Write in fluent professional English. Do not use bullet points. "
+        "Do not add caveats or disclaimers. Do not say 'based on the data'. "
+        "Output only the 3 sentences, nothing else.\n\n"
+        f"Data:\n"
+        f"- EUA price today: €{latest_price:.2f}/t (day change: {change_pct:+.2f}%, {direction})\n"
+        f"- 7-day MA: €{ma_7:.2f}/t — price is {vs_ma7} this average\n"
+        f"- 30-day MA: €{ma_30:.2f}/t — price is {vs_ma30} this average\n"
         f"- 20-day annualised volatility: {volatility:.1f}%"
     )
 
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"maxOutputTokens": 200, "temperature": 0.7},
+        "generationConfig": {"maxOutputTokens": 350, "temperature": 0.4},
     }
 
     try:
