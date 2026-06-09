@@ -18,6 +18,7 @@ from plotly.subplots import make_subplots
 
 from pipeline.analytics import enrich, get_market_summary
 from pipeline.database import get_alerts_df, get_prices_df, init_db
+from llm_insight import get_market_insight
 
 # ── Page config ────────────────────────────────────────────────────────────
 
@@ -153,6 +154,21 @@ with col5:
     st.metric("YTD Change", f"{summary.ytd_change_pct:+.2f}%")
 
 st.markdown(f"*As of {summary.price_date} · {summary.market} · {summary.unit}*")
+st.markdown("---")
+
+# ── LLM Market Insight ─────────────────────────────────────────────────────
+
+if st.button("🤖 Generate Market Insight", use_container_width=False):
+    with st.spinner("Generating insight…"):
+        insight = get_market_insight(
+            latest_price=summary.latest_price,
+            change_pct=summary.daily_change_pct,
+            ma_7=summary.ma_7 or summary.latest_price,
+            ma_30=summary.ma_30 or summary.latest_price,
+            volatility=summary.volatility_20d or 0.0,
+        )
+    st.info(insight)
+
 st.markdown("---")
 
 # ── Main chart ─────────────────────────────────────────────────────────────
