@@ -1,13 +1,11 @@
 """
-LLM market insight via Google Gemini API.
+LLM market insight via Groq API.
 
-Reads GEMINI_API_KEY from the environment (set in .env for local dev,
+Reads grok_key from the environment (set in .env for local dev,
 or as a Render environment variable in production).
 """
 
 import os
-import time
-import requests
 from pathlib import Path
 
 
@@ -30,13 +28,8 @@ def _load_dotenv() -> None:
 
 _load_dotenv()
 
-# ── Gemini API ──────────────────────────────────────────────────────────────
 
-_GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-3.5-flash:generateContent"
-)
-
+# ── Groq API ────────────────────────────────────────────────────────────────
 
 def get_market_insight(
     latest_price: float,
@@ -46,60 +39,54 @@ def get_market_insight(
     volatility: float,
 ) -> str:
     """
-    Calling the Gemini API and return a 2-3 sentence plain-English carbon
+    Call the Groq API and return a 3-sentence plain-English carbon
     market analyst summary based on the supplied price metrics.
 
     Returns an error string (never raises) so the dashboard always gets
     something displayable.
     """
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key = os.environ.get("grok_key", "").strip()
     if not api_key:
-        return "⚠️ GEMINI_API_KEY is not set. Add it to your .env file or Render environment variables."
+        return "⚠️ grok_key is not set. Add it to your .env file or Render environment variables."
 
     vs_ma7 = "above" if latest_price > ma_7 else "below"
     vs_ma30 = "above" if latest_price > ma_30 else "below"
 
     prompt = (
-        "You are a senior EU ETS carbon market analyst. "
-        "Write 3 sentences of professional market commentary in plain prose — no bullet points, no headers.\n\n"
         f"EU ETS data:\n"
         f"- EUA price: €{latest_price:.2f}/t ({change_pct:+.2f}% today)\n"
         f"- 7-day MA: €{ma_7:.2f}/t (price is {vs_ma7})\n"
         f"- 30-day MA: €{ma_30:.2f}/t (price is {vs_ma30})\n"
         f"- 20-day annualised volatility: {volatility:.1f}%\n\n"
-        "Cover: (1) today's move and position vs moving averages, "
-        "(2) what the MA spread implies about momentum, "
-        "(3) what the volatility level suggests about near-term risk."
+        "Write 3 sentences of professional market commentary covering today's price move "
+        "and position vs moving averages, what the MA spread implies about momentum, "
+        "and what the volatility level suggests about near-term risk."
     )
 
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"maxOutputTokens": 300, "temperature": 0.4},
-    }
-
-    last_error = ""
-    for attempt in range(3):
-        try:
-            resp = requests.post(
-                _GEMINI_URL,
-                params={"key": api_key},
-                json=payload,
-                timeout=(10, 20),
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-        except requests.exceptions.HTTPError as e:
-            status = e.response.status_code
-            if status == 503 and attempt < 2:
-                time.sleep(3)
-                continue
-            return f"⚠️ Gemini API error ({status}): {e.response.text[:200]}"
-        except requests.exceptions.Timeout:
-            if attempt < 2:
-                time.sleep(2)
-                continue
-            last_error = "request timed out — Gemini may be under high load, try again shortly"
-        except Exception as e:
-            return f"⚠️ Could not generate insight: {e}"
-    return f"⚠️ {last_error}"
+    try:
+        from groq import Groq
+        client = Groq(api_key=api_key)
+        completion = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a senior EU ETS carbon market analyst. "
+                        "Respond with plain prose only — no bullet points, no headers, no labels."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            temperature=1,
+            max_completion_tokens=512,
+            top_p=1,
+            reasoning_effort="medium",
+            stream=False,
+        )
+        return completion.choices[0].message.content.strip()
+    except Exception as e:
+        return f"⚠️ Could not generate insight: {e}"
