@@ -176,7 +176,7 @@ with col_meta:
     st.markdown(f"*As of {summary.price_date} · {summary.market} · {summary.unit}*")
 with col_btn:
     st.markdown('<div class="insight-btn">', unsafe_allow_html=True)
-    if st.button("🤖 Generate Insight", use_container_width=True, key="insight_btn"):
+    if st.button("🤖 Generate AI Insights", use_container_width=True, key="insight_btn"):
         with st.spinner("Generating insight…"):
             st.session_state["market_insight"] = get_market_insight(
                 latest_price=summary.latest_price,
