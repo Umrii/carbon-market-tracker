@@ -46,7 +46,7 @@ def get_market_insight(
     volatility: float,
 ) -> str:
     """
-    Call the Gemini API and return a 2-3 sentence plain-English carbon
+    Calling the Gemini API and return a 2-3 sentence plain-English carbon
     market analyst summary based on the supplied price metrics.
 
     Returns an error string (never raises) so the dashboard always gets
