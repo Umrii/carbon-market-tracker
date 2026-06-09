@@ -61,6 +61,22 @@ st.markdown("""
         border-bottom: 1px solid #1e293b;
         padding-bottom: 8px;
     }
+    /* Insight button — dark theme */
+    div[data-testid="stButton"].insight-btn > button {
+        background: rgba(96, 165, 250, 0.06);
+        border: 1px solid #334155;
+        color: #94a3b8;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        letter-spacing: 0.3px;
+        padding: 0.35rem 0.9rem;
+        transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    div[data-testid="stButton"].insight-btn > button:hover {
+        border-color: #60a5fa;
+        color: #e2e8f0;
+        background: rgba(96, 165, 250, 0.14);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -153,21 +169,26 @@ with col4:
 with col5:
     st.metric("YTD Change", f"{summary.ytd_change_pct:+.2f}%")
 
-st.markdown(f"*As of {summary.price_date} · {summary.market} · {summary.unit}*")
-st.markdown("---")
+# ── Metadata row + insight button (right-aligned) ──────────────────────────
 
-# ── LLM Market Insight ─────────────────────────────────────────────────────
+col_meta, col_btn = st.columns([4, 1])
+with col_meta:
+    st.markdown(f"*As of {summary.price_date} · {summary.market} · {summary.unit}*")
+with col_btn:
+    st.markdown('<div class="insight-btn">', unsafe_allow_html=True)
+    if st.button("🤖 Generate Insight", use_container_width=True, key="insight_btn"):
+        with st.spinner("Generating insight…"):
+            st.session_state["market_insight"] = get_market_insight(
+                latest_price=summary.latest_price,
+                change_pct=summary.daily_change_pct,
+                ma_7=summary.ma_7 or summary.latest_price,
+                ma_30=summary.ma_30 or summary.latest_price,
+                volatility=summary.volatility_20d or 0.0,
+            )
+    st.markdown("</div>", unsafe_allow_html=True)
 
-if st.button("🤖 Generate Market Insight", use_container_width=False):
-    with st.spinner("Generating insight…"):
-        insight = get_market_insight(
-            latest_price=summary.latest_price,
-            change_pct=summary.daily_change_pct,
-            ma_7=summary.ma_7 or summary.latest_price,
-            ma_30=summary.ma_30 or summary.latest_price,
-            volatility=summary.volatility_20d or 0.0,
-        )
-    st.info(insight)
+if st.session_state.get("market_insight"):
+    st.info(st.session_state["market_insight"])
 
 st.markdown("---")
 
